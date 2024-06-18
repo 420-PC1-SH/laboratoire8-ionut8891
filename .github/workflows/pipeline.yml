@@ -1,0 +1,38 @@
+# Name of your workflow
+name: Android Build and Deployment Pipeline
+# Define on which Github event, workflow will trigger
+on:
+  push:
+    branches: [ main ]
+jobs:
+  job1:
+    name: Job
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the code to specific branch
+        uses: actions/checkout@v2
+      # Ajout du JDK 20 pour les besoins du projet
+      - name: Set up JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'zulu'
+          java-version: '20'
+      # Ajout du SDK d'Android pour pouvoir faire builder notre application
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v2
+      # Ici, l'instruction sert à utiliser la version de Gradle contenu dans le projet c'est à dire celle définit dans le gradle-wrapper.properties
+      # L'utilité c'est que tout le monde utilise ainsi la même version de Gradle pour éviter des problèmes de comptabilité entre développeur et nos CI
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+      # Permet de rendre gradlew exécutable dans l'environnement ubuntu sous GitHub Actions
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+      # Permet de réaliser un build de l'application
+      - name: Generate app bundle.
+        run: ./gradlew app:bundleRelease --stacktrace
